@@ -1,0 +1,30 @@
+[project]
+name = "chat-with-lily"
+version = "0.0.1"
+description = "a goth chatbot"
+authors = [{ name = "lisphi" }]
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+  "pandas",
+  "commentjson",
+  "click",
+  "loguru>=0.7.3",
+
+]
+
+[project.scripts]
+mycli = "lily.cli:cli"
+
+[dependency-groups]
+main = []
+dev = ["pytest", "ruff"]
+
+[tool.uv]
+# 可选：配置镜像源等
+
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+default = true
