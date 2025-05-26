@@ -8,8 +8,16 @@
             "name": "cli-hello",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "./lily/cli.py",
             "args": ["hello"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "cli-make-dataset",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./lily/cli.py",
+            "args": ["make-dataset"],
             "console": "integratedTerminal"
         }
     ]

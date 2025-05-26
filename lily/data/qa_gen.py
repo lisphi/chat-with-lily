@@ -1,6 +1,8 @@
 import os
 import re
 from typing import Dict, List, Union
+from dataclasses import asdict
+import json
 
 from lily.utils.config import load_config
 from lily.utils.log import logger
@@ -8,8 +10,9 @@ from lily.data.models import SftMessages, SftMessage, RawMessage
 
 class DataProcessor:
     def __init__(self):
-        self.config = load_config("make_dataset")
+        self.config = load_config(arg_type="make_dataset")
         self.raw_folder = "./dataset/raw"
+        self.output_path = "./dataset/res/sft/sft-lily.jsonl"
         self.system_prompt = self.config.get("default_system")
 
     def process(self):
@@ -43,43 +46,44 @@ class DataProcessor:
 
     def raw_messages_to_sft_messages_list(self, raw_message_list):
         sft_messages_list: List[SftMessages] = []
-        user_content = ""
-        assistant_content = ""
+        last_user_content = ""
+        last_assistant_content = ""
         last_user = ""
         for i, raw_message in enumerate(raw_message_list):
-            # 用户连续发言合并成一条
+            # merge consecutive messages into a single message.
             if last_user == raw_message.user:
                 if raw_message.is_aside():
                     continue
                 elif raw_message.is_assistant():
-                    if assistant_content == "":
-                        assistant_content = raw_message.content
+                    if last_assistant_content == "":
+                        last_assistant_content = raw_message.content
                     else:
-                        assistant_content += " " + raw_message.content
+                        last_assistant_content += " " + raw_message.content
                 else:
-                    if user_content == "":
-                        user_content = raw_message.content
+                    if last_user_content == "":
+                        last_user_content = raw_message.content
                     else:
-                        user_content += " " + raw_message.content
+                        last_user_content += " " + raw_message.content
                 continue
 
-            # 完整的对话加入列表
-            if user_content != "" and assistant_content != "":
-                sft_messages_list.append(self.create_sft_messages(user_content, assistant_content))
-                user_content = ""
-                assistant_content = ""
+            # add question and answer pair to sft_messages_list
+            if last_user_content != "" and last_assistant_content != "":
+                sft_messages_list.append(self.create_sft_messages(last_user_content, last_assistant_content))
+                last_user_content = ""
+                last_assistant_content = ""
 
-            user = raw_message.user
+            last_user = raw_message.user
             if raw_message.is_aside():
                 continue
             elif raw_message.is_assistant():
-                assistant_content = raw_message.content
+                last_assistant_content = raw_message.content
             else:
-                user_content = raw_message.content
+                last_user_content = raw_message.content
             
-        # 完整的对话加入列表
-        if user_content != "" and assistant_content != "":
-            sft_messages_list.append(self.create_sft_messages(user_content, assistant_content))
+        # add question and answer pair to sft_messages_list
+        if last_user_content != "" and last_assistant_content != "":
+            sft_messages_list.append(self.create_sft_messages(last_user_content, last_assistant_content))
+        return sft_messages_list
 
 
     def raw_line_to_message(self, line):
@@ -94,13 +98,18 @@ class DataProcessor:
 
 
     def create_sft_messages(self, user_content: str, assistant_content: str) -> SftMessages:
-        sft_message_list = List[SftMessage] = []
-        sft_message_list.append(SftMessage(role="system", content=self))
+        sft_message_list: List[SftMessage] = []
+        sft_message_list.append(SftMessage(role="system", content=self.system_prompt))
         sft_message_list.append(SftMessage(role="user", content=user_content))
         sft_message_list.append(SftMessage(role="assistant", content=assistant_content))
         return SftMessages(messages=sft_message_list)
     
 
     def save_sft_messages(self, sft_messages_list: List[SftMessages]):
-        # todo: Implement save_sft_messages
-        pass
+        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
+        with open(self.output_path, "w", encoding="utf-8") as f:
+            for message in sft_messages_list:
+                message_dict = asdict(message)
+                json.dump(message_dict, f, ensure_ascii=False)
+                f.write("\n")
+        logger.success(f"saved messages for sft. count={len(sft_messages_list)}, path={self.output_path}")

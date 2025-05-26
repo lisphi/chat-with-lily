@@ -20,6 +20,5 @@ def load_config(arg_type: str):
 
     if arg_type == "make_dataset":
         config = {**s_config["make_dataset_args"], **s_config["common_args"]}
-        config["dataset"] = s_config["train_sft_args"]["dataset"]
-        config["dataset_dir"] = s_config["train_sft_args"]["dataset_dir"]
-        config["cutoff_len"] = s_config["train_sft_args"]["cutoff_len"]
+    
+    return config

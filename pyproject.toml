@@ -24,7 +24,11 @@ dev = ["pytest", "ruff"]
 [tool.uv]
 # 可选：配置镜像源等
 
-
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
 default = true
+
+[tool.setuptools.packages.find]
+where = ["."]                      
+include = ["lily"]             
+exclude = ["*tests*", "*archive*"] 
